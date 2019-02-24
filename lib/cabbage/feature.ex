@@ -191,7 +191,9 @@ defmodule Cabbage.Feature do
         Map.put(
           describe_block.scenario,
           :tags,
-          Cabbage.global_tags() ++ List.wrap(Module.get_attribute(env.module, :moduletag)) ++ describe_block.scenario.tags
+          Cabbage.global_tags() ++
+            List.wrap(Module.get_attribute(env.module, :moduletag)) ++
+            describe_block.scenario.tags
         )
 
       quote do
@@ -230,12 +232,12 @@ defmodule Cabbage.Feature do
               IO.ANSI.white()
             ])
 
-            Cabbage.Feature.Helpers.start_state(unquote(describe_block.description), __MODULE__, remove_hidden_state(context))
-            unquote(Enum.map(describe_block.background_steps, &compile_step(&1, steps, describe_block.description)))
-
             {:ok,
              Map.merge(
-               Cabbage.Feature.Helpers.fetch_state(unquote(describe_block.description), __MODULE__),
+               Cabbage.Feature.Helpers.fetch_state(
+                 unquote(describe_block.description),
+                 __MODULE__
+               ),
                context || %{}
              )}
           end
@@ -249,11 +251,21 @@ defmodule Cabbage.Feature do
             tags
           )
 
-          def unquote(:"test #{test_number}) #{describe_block.description} cabbage_test")(exunit_state) do
-            Cabbage.Feature.Helpers.start_state(unquote(describe_block.description), __MODULE__, exunit_state)
+          def unquote(:"test #{test_number}) #{describe_block.description} cabbage_test")(
+                exunit_state
+              ) do
+            Cabbage.Feature.Helpers.start_state(
+              unquote(describe_block.description),
+              __MODULE__,
+              exunit_state
+            )
 
-
-            unquote(Enum.map(scenario.steps, &compile_step(&1, steps, describe_block.description)))
+            unquote(
+              Enum.map(
+                describe_block.background_steps ++ scenario.steps,
+                &compile_step(&1, steps, describe_block.description)
+              )
+            )
           end
         end
       end
@@ -264,8 +276,13 @@ defmodule Cabbage.Feature do
     cond do
       feature.scenarios != [] ->
         Enum.map(feature.scenarios, fn scenario ->
-          %DescribeBlock{background_steps: feature.background_steps, description: scenario.name, scenario: scenario}
+          %DescribeBlock{
+            background_steps: feature.background_steps,
+            description: scenario.name,
+            scenario: scenario
+          }
         end)
+
       feature.rules != [] ->
         Enum.flat_map(feature.rules, fn rule ->
           Enum.map(rule.scenarios, fn scenario ->
