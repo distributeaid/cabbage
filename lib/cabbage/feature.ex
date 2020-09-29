@@ -191,7 +191,8 @@ defmodule Cabbage.Feature do
         Map.put(
           describe_block.scenario,
           :tags,
-          Cabbage.global_tags() ++ List.wrap(Module.get_attribute(env.module, :moduletag)) ++ describe_block.scenario.tags
+          Cabbage.global_tags() ++
+            List.wrap(Module.get_attribute(env.module, :moduletag)) ++ describe_block.scenario.tags
         )
 
       quote bind_quoted: [
@@ -243,7 +244,12 @@ defmodule Cabbage.Feature do
           def unquote(name)(exunit_state) do
             Cabbage.Feature.Helpers.start_state(unquote(describe_block.description), __MODULE__, exunit_state)
 
-            unquote(Enum.map(describe_block.background_steps ++ scenario.steps, &compile_step(&1, steps, describe_block.description)))
+            unquote(
+              Enum.map(
+                describe_block.background_steps ++ scenario.steps,
+                &compile_step(&1, steps, describe_block.description)
+              )
+            )
           end
         end
       end
@@ -323,6 +329,7 @@ defmodule Cabbage.Feature do
             }
           end)
         end)
+
       feature.scenarios != [] ->
         Enum.map(feature.scenarios, fn scenario ->
           %DescribeBlock{background_steps: feature.background_steps, description: scenario.name, scenario: scenario}
@@ -360,7 +367,7 @@ defmodule Cabbage.Feature do
   """
   defmacro import_steps(module) do
     quote do
-      if Code.ensure_compiled?(unquote(module)) do
+      if Code.ensure_compiled(unquote(module)) do
         for step <- unquote(module).raw_steps() do
           Module.put_attribute(__MODULE__, :steps, step)
         end
@@ -373,7 +380,7 @@ defmodule Cabbage.Feature do
   """
   defmacro import_tags(module) do
     quote do
-      if Code.ensure_compiled?(unquote(module)) do
+      if Code.ensure_compiled(unquote(module)) do
         for {name, block} <- unquote(module).raw_tags() do
           Cabbage.Feature.Helpers.add_tag(__MODULE__, name, block)
         end
